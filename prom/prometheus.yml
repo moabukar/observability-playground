@@ -9,7 +9,7 @@ scrape_configs:
   - job_name: app
     metrics_path: /metrics
     static_configs:
-      - targets: [ "app:8080" ]  # FastAPI serves /metrics on same port
+      - targets: ["app:8080"]
   - job_name: prometheus
     static_configs:
-      - targets: [ "prometheus:9090" ]
+      - targets: ["prometheus:9090"]

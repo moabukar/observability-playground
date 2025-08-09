@@ -27,6 +27,22 @@ make fault-ok             # reset faults
 
 - Traces: Tempo via Grafana Explore
 
+## What to do next
+
+```bash
+curl -s http://localhost:8080/health           # {"ok":true}
+curl -s http://localhost:8080/work | jq .       # should return {"ok":true,...}
+
+
+## Metrics visible?
+
+# Prom targets UP?
+curl -s http://localhost:9090/api/v1/targets | jq '.data.activeTargets[] | {job:.labels.job, health:.health}'
+# App metrics endpoint (scraped by Prometheus):
+curl -s http://localhost:8080/metrics | head
+
+```
+
 ## Incident tickets (examples)
 
 - HighErrorRate firing. Find culprit, link logs + traces, propose a rollback.
@@ -41,8 +57,6 @@ make fault-ok             # reset faults
 make down
 make reset
 ```
-
-
 ---
 
 ### Notes / edge cases covered

@@ -3,19 +3,20 @@ version: "3.8"
 services:
   app:
     build:
-      context: ./app
+      context: .
+      dockerfile: Dockerfile
     image: o11y/app:local
     container_name: app
     environment:
       - SERVICE_NAME=app
-      - ERROR_RATE=0.0           # 0..1 (can toggle at runtime via /faults endpoints)
-      - EXTRA_LATENCY_MS=0       # added latency in ms
+      - ERROR_RATE=0.0
+      - EXTRA_LATENCY_MS=0
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - OTEL_SERVICE_NAME=app
       - OTEL_TRACES_SAMPLER=parentbased_always_on
       - PROM_PORT=8000
       - LOG_PATH=/var/log/app/app.log
-    ports: [ "8080:8080" ]       # ingress for you
+    ports: [ "8080:8080" ]
     volumes:
       - ./data/logs:/var/log/app
     depends_on: [ otel-collector ]
