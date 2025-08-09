@@ -5,16 +5,21 @@ receivers:
         endpoint: 0.0.0.0:4317
       http:
         endpoint: 0.0.0.0:4318
+
 exporters:
   otlp:
     endpoint: tempo:4317
     tls:
       insecure: true
   logging:
-    loglevel: warn
+    verbosity: detailed  # More verbose to debug
+
 processors:
   batch:
+
 service:
+  # Disable the localhost feature gate to allow 0.0.0.0 binding
+  extensions: []
   pipelines:
     traces:
       receivers: [otlp]
