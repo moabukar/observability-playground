@@ -1,0 +1,20 @@
+groups:
+  - name: app.rules
+    rules:
+      - record: job:http_request_errors:rate5m
+        expr: rate(app_errors_total[5m])
+      - alert: HighErrorRate
+        expr: rate(app_errors_total[5m]) > 0.1
+        for: 2m
+        labels: { severity: page }
+        annotations:
+          summary: "High error rate on app"
+          description: "Errors > 0.1/s for 2m"
+
+      - alert: HighLatencyP95
+        expr: histogram_quantile(0.95, rate(app_request_seconds_bucket[5m])) > 0.5
+        for: 2m
+        labels: { severity: ticket }
+        annotations:
+          summary: "Latency p95 > 500ms"
+          description: "p95 latency above 500ms for 2m"

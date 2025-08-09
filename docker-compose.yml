@@ -1,0 +1,89 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: ./app
+    image: o11y/app:local
+    container_name: app
+    environment:
+      - SERVICE_NAME=app
+      - ERROR_RATE=0.0           # 0..1 (can toggle at runtime via /faults endpoints)
+      - EXTRA_LATENCY_MS=0       # added latency in ms
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=app
+      - OTEL_TRACES_SAMPLER=parentbased_always_on
+      - PROM_PORT=8000
+      - LOG_PATH=/var/log/app/app.log
+    ports: [ "8080:8080" ]       # ingress for you
+    volumes:
+      - ./data/logs:/var/log/app
+    depends_on: [ otel-collector ]
+
+  otel-collector:
+    image: otel/opentelemetry-collector:0.105.0
+    container_name: otel-collector
+    command: [ "--config=/etc/otel-collector.yaml" ]
+    volumes:
+      - ./otel/collector.yaml:/etc/otel-collector.yaml:ro
+    ports:
+      - "4317:4317"              # OTLP gRPC
+      - "4318:4318"              # OTLP HTTP (optional)
+
+  prometheus:
+    image: prom/prometheus:v2.55.0
+    container_name: prometheus
+    volumes:
+      - ./prom/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prom/rules:/etc/prometheus/rules:ro
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-lifecycle
+    ports: [ "9090:9090" ]
+    depends_on: [ app ]
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: alertmanager
+    volumes:
+      - ./prom/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports: [ "9093:9093" ]
+
+  loki:
+    image: grafana/loki:2.9.8
+    container_name: loki
+    command: [ "-config.file=/etc/loki/config.yml" ]
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/config.yml:ro
+      - ./data/logs:/logs:ro
+    ports: [ "3100:3100" ]
+
+  promtail:
+    image: grafana/promtail:2.9.8
+    container_name: promtail
+    command: [ "-config.file=/etc/promtail/config.yml" ]
+    volumes:
+      - ./promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - ./data/logs:/logs:ro
+    depends_on: [ loki ]
+
+  tempo:
+    image: grafana/tempo:2.5.0
+    container_name: tempo
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./otel/tempo-minimal.yaml:/etc/tempo.yaml:ro
+    ports: [ "3200:3200" ]  # otlp ingested via collector; query via grafana
+    # minimal config embedded below in otel/tempo-minimal.yaml (see later)
+
+  grafana:
+    image: grafana/grafana:11.0.0
+    container_name: grafana
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Editor
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    ports: [ "3000:3000" ]
+    depends_on: [ prometheus, loki, tempo ]
