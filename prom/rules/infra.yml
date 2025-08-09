@@ -1,9 +1,12 @@
 groups:
-  - name: infra.rules
+  - name: infra_alerts
     rules:
       - alert: AppDown
         expr: up{job="app"} == 0
-        for: 1m
-        labels: { severity: page }
+        for: 30s
+        labels:
+          severity: critical
+          service: app
         annotations:
-          summary: "App target down"
+          summary: "Application is down"
+          description: "App service has been down for more than 30 seconds"

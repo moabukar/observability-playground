@@ -1,9 +1,16 @@
+global:
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alerts@example.com'
+
 route:
-  receiver: devnull
-  group_by: [ 'alertname' ]
+  group_by: ['alertname']
   group_wait: 10s
-  group_interval: 30s
-  repeat_interval: 2m
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'web.hook'
 
 receivers:
-  - name: devnull
+  - name: 'web.hook'
+    webhook_configs:
+      - url: 'http://localhost:5001/'
+        send_resolved: true
